@@ -33,7 +33,7 @@ struct CommitGraphView: View {
                                         Text(ref).lineLimit(1).truncationMode(.middle).foregroundStyle(.blue)
                                     }
                                     Spacer(minLength: 0)
-                                    if !compact { Text(row.commit.date, style: .relative).lineLimit(1) }
+                                    if !compact { Text(row.commit.date.formatted(.relative(presentation: .numeric, unitsStyle: .abbreviated))).lineLimit(1) }
                                 }
                                 .font(.system(size: 10)).foregroundStyle(.secondary)
                             }
@@ -45,7 +45,7 @@ struct CommitGraphView: View {
                     }
                     .buttonStyle(.plain)
                     .help("\(row.commit.subject)\n\(row.commit.sha) · \(row.commit.author)")
-                    .accessibilityLabel("\(row.commit.isMerge ? "合并提交" : "提交") \(row.commit.subject)，\(row.commit.shortSHA)")
+                    .accessibilityLabel("\(localized(row.commit.isMerge ? "合并提交" : "提交")) \(row.commit.subject), \(row.commit.shortSHA)")
                 }
             }
         }

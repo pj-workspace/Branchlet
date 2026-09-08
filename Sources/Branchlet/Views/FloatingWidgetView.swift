@@ -55,7 +55,7 @@ struct FloatingWidgetView: View {
                 ForEach([ChangeLayer.unstaged, .staged, .untracked], id: \.self) { layer in
                     Button { store.openWidgetInMain() } label: {
                         HStack(spacing: 6) {
-                            Text(layer.title).foregroundStyle(.secondary)
+                            Text(LocalizedStringKey(layer.title)).foregroundStyle(.secondary)
                             Text("\(store.widgetSnapshot?.status.files.filter { $0.layer == layer }.count ?? 0)").fontWeight(.semibold).monospacedDigit()
                         }
                         .font(.system(size: 11)).frame(maxWidth: .infinity).padding(.vertical, 8)
@@ -100,7 +100,7 @@ struct FloatingWidgetView: View {
             }
             .padding(.horizontal, 16).padding(.top, 12)
             HStack {
-                Text(store.preferences.widgetPinned ? "已置顶 · 固定此仓库" : "固定此仓库")
+                Text(LocalizedStringKey(store.preferences.widgetPinned ? "已置顶 · 固定此仓库" : "固定此仓库"))
                 Spacer()
                 Text("远程：本地缓存")
             }

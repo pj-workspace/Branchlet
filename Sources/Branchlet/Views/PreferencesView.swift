@@ -11,8 +11,8 @@ struct PreferencesView: View {
             }
             Section("仓库") {
                 Button("添加本地仓库…", systemImage: "folder.badge.plus") { store.chooseRepository() }
-                LabeledContent("自动刷新", value: "当前仓库与浮窗每 5 秒")
-                LabeledContent("其他仓库", value: "约每 60 秒")
+                LabeledContent("自动刷新", value: localized("当前仓库与浮窗每 5 秒"))
+                LabeledContent("其他仓库", value: localized("约每 60 秒"))
                 Text("远程引用由 Fetch 更新。Branchlet 不会自动提交、合并或推送代码。")
                     .font(.callout).foregroundStyle(.secondary)
             }

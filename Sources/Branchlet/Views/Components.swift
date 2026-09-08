@@ -21,13 +21,19 @@ struct IconButton: View {
     var selected = false
     let action: () -> Void
     var body: some View {
-        Button(action: action) { Image(systemName: symbol).frame(width: 18, height: 18) }
+        Button {
+            let keyboardActivation = NSApp.currentEvent.map { $0.type == .keyDown || $0.type == .keyUp } ?? false
+            action()
+            if !keyboardActivation {
+                DispatchQueue.main.async { NSApp.keyWindow?.makeFirstResponder(nil) }
+            }
+        } label: { Image(systemName: symbol).frame(width: 18, height: 18) }
             .buttonStyle(.borderless)
             .padding(5)
             .foregroundStyle(selected ? Color.accentColor : .secondary)
             .background(selected ? Color.accentColor.opacity(0.12) : .clear, in: Circle())
-            .help(label)
-            .accessibilityLabel(label)
+            .help(Text(LocalizedStringKey(label)))
+            .accessibilityLabel(Text(LocalizedStringKey(label)))
     }
 }
 
@@ -57,8 +63,8 @@ struct RepositoryPicker: View {
             }
         }
         .menuStyle(.borderlessButton)
-        .help(widget ? "小组件固定的仓库，独立于主窗口" : "切换仓库")
-        .accessibilityLabel(widget ? "小组件仓库" : "切换仓库")
+        .help(Text(LocalizedStringKey(widget ? "小组件固定的仓库，独立于主窗口" : "切换仓库")))
+        .accessibilityLabel(Text(LocalizedStringKey(widget ? "小组件仓库" : "切换仓库")))
     }
 }
 
@@ -84,7 +90,7 @@ struct WorktreePicker: View {
         .menuStyle(.borderlessButton)
         .disabled(snapshot == nil)
         .help("切换已存在的工作树，不执行 git checkout")
-        .accessibilityLabel(widget ? "小组件工作树" : "工作树")
+        .accessibilityLabel(Text(LocalizedStringKey(widget ? "小组件工作树" : "工作树")))
     }
 }
 
@@ -110,10 +116,10 @@ struct RemoteStrip: View {
                 if let ahead = remote.ahead, let behind = remote.behind {
                     Text("↑\(ahead) ↓\(behind)").monospacedDigit()
                         .foregroundStyle(behind > 0 ? Color.orange : .primary)
-                } else { Text(remote.note ?? "未知").foregroundStyle(.secondary) }
+                } else { Text(LocalizedStringKey(remote.note ?? "未知")).foregroundStyle(.secondary) }
             }
             .font(.system(size: 11))
-            .help("\(remote.branch ?? remote.name) · 本地远程引用缓存，Fetch 后更新")
+            .help(Text("\(remote.branch ?? remote.name) · 本地远程引用缓存，Fetch 后更新"))
         }
     }
 }

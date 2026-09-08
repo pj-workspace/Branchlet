@@ -14,30 +14,41 @@ struct WorkspaceView: View {
 
     var body: some View {
         HSplitView {
-            sidebar.frame(minWidth: 185, idealWidth: 215, maxWidth: 280)
+            sidebar.frame(minWidth: 185, idealWidth: 210, maxWidth: 220)
             VStack(spacing: 0) {
                 if let repository = store.selectedRepository {
                     header(repository)
                     if let path = store.selectedPath, let error = store.errors[path] { RepositoryErrorView(message: error).padding(10) }
+                    if let path = store.selectedPath, let error = store.fetchErrors[path] {
+                        RepositoryErrorView(message: "Fetch 失败，远程引用可能过期：\(error)").padding(10)
+                    }
                     HSplitView {
                         ScrollView {
                             if let snapshot = store.selectedSnapshot {
                                 FileListView(files: snapshot.status.files, selection: selectedFile) { file in store.showDetail(.file(file)) }
                             } else { ProgressView("读取文件…").padding(30) }
                         }
-                        .frame(minWidth: 240, idealWidth: 290, maxWidth: 430)
+                        .frame(minWidth: 240, idealWidth: 280, maxWidth: 340)
                         .background(Color(nsColor: .controlBackgroundColor))
                         VSplitView {
                             VStack(spacing: 0) {
                                 HStack {
                                     Label("提交历史", systemImage: "arrow.triangle.branch").fontWeight(.medium)
                                     Spacer()
-                                    Text("当前工作树 · 最近 160 条").foregroundStyle(.secondary)
+                                    Picker("图范围", selection: Binding(get: { store.showAllBranches }, set: { store.setHistoryScope($0) })) {
+                                        Text("当前分支").tag(false)
+                                        Text("全部分支").tag(true)
+                                    }
+                                    .labelsHidden().pickerStyle(.segmented).frame(width: 220)
+                                    .help("最近 160 条提交；全部分支包含本地分支、标签和远程引用")
                                 }
                                 .font(.system(size: 11)).padding(12)
                                 Divider()
+                                if store.showAllBranches, let path = store.selectedPath, let error = store.historyErrors[path] {
+                                    RepositoryErrorView(message: error)
+                                }
                                 ScrollView {
-                                    CommitGraphView(commits: store.selectedSnapshot?.commits ?? [], selectedSHA: selectedSHA) { commit in store.showDetail(.commit(commit)) }
+                                    CommitGraphView(commits: store.displayedCommits, selectedSHA: selectedSHA) { commit in store.showDetail(.commit(commit)) }
                                 }
                             }
                             .frame(minHeight: 180)
@@ -138,7 +149,7 @@ struct WorkspaceView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(repository.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
-                    Text(store.selectedPath ?? repository.path).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                    Text(((store.selectedPath ?? repository.path) as NSString).abbreviatingWithTildeInPath).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 }
                 Spacer(minLength: 8)
                 Button("浮动图", systemImage: "pip.enter") { WindowCoordinator.shared.showWidget() }.buttonStyle(.glass)

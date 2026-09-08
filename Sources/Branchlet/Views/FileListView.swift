@@ -39,7 +39,7 @@ struct FileListView: View {
                             }
                         } label: {
                             HStack {
-                                Text(layer.title).foregroundStyle(layer == .conflicted ? .red : .secondary)
+                                Text(LocalizedStringKey(layer.title)).foregroundStyle(layer == .conflicted ? .red : .secondary)
                                 Spacer()
                                 Text("\(changes.count)").monospacedDigit().foregroundStyle(.secondary)
                             }
@@ -78,6 +78,6 @@ struct FileListView: View {
         }
         .buttonStyle(.plain)
         .help(file.originalPath.map { "\($0) → \(file.path)" } ?? file.path)
-        .accessibilityLabel("\(file.layer.title)，\(file.path)，\(file.status)")
+        .accessibilityLabel("\(localized(file.layer.title)), \(file.path), \(file.status)")
     }
 }

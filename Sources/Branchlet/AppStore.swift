@@ -24,7 +24,7 @@ enum DetailSelection: Hashable {
     }
     var subtitle: String {
         switch self {
-        case .file(let file): "\(file.layer.title) · \(file.path)"
+        case .file(let file): "\(localized(file.layer.title)) · \(file.path)"
         case .commit(let commit): "\(commit.shortSHA) · \(commit.author)"
         }
     }
@@ -36,9 +36,13 @@ final class AppStore {
     var preferences: AppPreferences
     var snapshots: [String: RepositorySnapshot] = [:]
     var errors: [String: String] = [:]
+    var fetchErrors: [String: String] = [:]
     var refreshing: Set<String> = []
     var fetching: Set<String> = []
     var fetchedAt: [String: Date] = [:]
+    var showAllBranches = false
+    var allHistory: [String: [Commit]] = [:]
+    var historyErrors: [String: String] = [:]
     var appError: String?
     var detailSelection: DetailSelection?
     var detailText = ""
@@ -60,10 +64,15 @@ final class AppStore {
     var widgetPath: String? { preferences.widgetPath ?? widgetRepository?.path }
     var widgetSnapshot: RepositorySnapshot? { widgetPath.flatMap { snapshots[$0] } }
     var menuCount: Int { selectedSnapshot?.status.changedFileCount ?? 0 }
+    var displayedCommits: [Commit] {
+        if showAllBranches, let path = selectedPath { return allHistory[path] ?? [] }
+        return selectedSnapshot?.commits ?? []
+    }
 
     init() {
+        let directoryName = Bundle.main.bundleIdentifier?.hasSuffix(".qa") == true ? "Branchlet-QA" : "Branchlet"
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Branchlet", isDirectory: true)
+            .appendingPathComponent(directoryName, isDirectory: true)
         configURL = base.appendingPathComponent("preferences.json")
         if let data = try? Data(contentsOf: configURL), let saved = try? JSONDecoder().decode(AppPreferences.self, from: data) {
             preferences = saved
@@ -88,8 +97,8 @@ final class AppStore {
 
     func chooseRepository() {
         let panel = NSOpenPanel()
-        panel.title = "添加 Git 仓库"
-        panel.message = "选择本机已克隆的仓库目录。"
+        panel.title = localized("添加 Git 仓库")
+        panel.message = localized("选择本机已克隆的仓库目录。")
         panel.canChooseDirectories = true; panel.canChooseFiles = false; panel.allowsMultipleSelection = true
         NSApp.activate(ignoringOtherApps: true)
         guard panel.runModal() == .OK else { return }
@@ -160,11 +169,24 @@ final class AppStore {
         do {
             let snapshot = try await git.snapshot(at: path)
             snapshots[path] = snapshot; errors.removeValue(forKey: path)
+            if showAllBranches, selectedPath == path { await refreshAllHistory(path) }
             if selectedPath == path, let detailSelection {
                 if case .file(let file) = detailSelection, !snapshot.status.files.contains(where: { $0.id == file.id }) { clearDetail() }
                 else { showDetail(detailSelection, background: true) }
             }
         } catch { errors[path] = error.localizedDescription }
+    }
+
+    func setHistoryScope(_ all: Bool) {
+        showAllBranches = all
+        if all, let path = selectedPath { Task { await refreshAllHistory(path) } }
+    }
+
+    private func refreshAllHistory(_ path: String) async {
+        do {
+            allHistory[path] = try await git.history(at: path, allBranches: true)
+            historyErrors.removeValue(forKey: path)
+        } catch { historyErrors[path] = error.localizedDescription }
     }
 
     func fetchSelected() {
@@ -174,9 +196,10 @@ final class AppStore {
             defer { fetching.remove(path) }
             do {
                 try await git.fetch(at: path)
+                fetchErrors.removeValue(forKey: path)
                 fetchedAt[path] = Date()
                 await refresh(path)
-            } catch { errors[path] = error.localizedDescription }
+            } catch { fetchErrors[path] = error.localizedDescription }
         }
     }
 

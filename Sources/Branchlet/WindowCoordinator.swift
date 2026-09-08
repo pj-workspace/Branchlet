@@ -20,15 +20,18 @@ final class WindowCoordinator: NSObject, NSWindowDelegate {
             window.minSize = NSSize(width: 850, height: 560)
             window.isReleasedWhenClosed = false
             window.contentViewController = NSHostingController(rootView: WorkspaceView(store: AppStore.shared))
+            window.setContentSize(NSSize(width: 1120, height: 740))
             window.center()
             window.setFrameAutosaveName("Branchlet.Main")
+            window.setFrameUsingName("Branchlet.Main")
             mainWindow = window
         }
         mainWindow?.makeKeyAndOrderFront(nil)
+        mainWindow?.makeFirstResponder(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    func showWidget() {
+    func showWidget(activate: Bool = true) {
         let store = AppStore.shared
         if store.widgetRepository == nil, let repo = store.selectedRepository {
             store.preferences.widgetRepository = repo.id
@@ -40,7 +43,7 @@ final class WindowCoordinator: NSObject, NSWindowDelegate {
                 contentRect: NSRect(x: 0, y: 0, width: 354, height: widgetHeight),
                 styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false
             )
-            panel.title = "Branchlet 浮动分支图"
+            panel.title = localized("Branchlet 浮动分支图")
             panel.isFloatingPanel = true
             panel.hidesOnDeactivate = false
             panel.becomesKeyOnlyIfNeeded = true
@@ -56,10 +59,15 @@ final class WindowCoordinator: NSObject, NSWindowDelegate {
                 panel.setFrameOrigin(NSPoint(x: screen.visibleFrame.maxX - 374, y: screen.visibleFrame.maxY - widgetHeight - 24))
             }
             panel.setFrameAutosaveName("Branchlet.Widget")
+            panel.setFrameUsingName("Branchlet.Widget")
             widgetPanel = panel
         }
         updateWidget()
-        widgetPanel?.orderFrontRegardless()
+        if activate {
+            widgetPanel?.makeKeyAndOrderFront(nil)
+            widgetPanel?.makeFirstResponder(nil)
+        }
+        else { widgetPanel?.orderFrontRegardless() }
     }
 
     func updateWidget() {
@@ -68,6 +76,16 @@ final class WindowCoordinator: NSObject, NSWindowDelegate {
         var frame = panel.frame
         frame.origin.y = frame.maxY - widgetHeight
         frame.size = NSSize(width: 354, height: widgetHeight)
+        // A saved panel frame can belong to a disconnected or rearranged display.
+        let screen = NSScreen.screens.max { left, right in
+            let a = frame.intersection(left.visibleFrame)
+            let b = frame.intersection(right.visibleFrame)
+            return (a.isNull ? 0 : a.width * a.height) < (b.isNull ? 0 : b.width * b.height)
+        }.flatMap { frame.intersects($0.visibleFrame) ? $0 : nil } ?? NSScreen.main
+        if let visible = screen?.visibleFrame {
+            frame.origin.x = min(max(frame.minX, visible.minX), visible.maxX - frame.width)
+            frame.origin.y = min(max(frame.minY, visible.minY), visible.maxY - frame.height)
+        }
         panel.setFrame(frame, display: true, animate: !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
     }
 

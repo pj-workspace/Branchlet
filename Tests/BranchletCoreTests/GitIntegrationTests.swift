@@ -62,6 +62,11 @@ private struct Fixture {
     try f.write("feature", "new\n"); try await f.commit("feature")
     try await f.git(["switch", "main"])
     try f.write("main", "main\n"); try await f.commit("main")
+    let currentHistory = try await f.service.history(at: f.path)
+    let allHistory = try await f.service.history(at: f.path, allBranches: true)
+    #expect(currentHistory.count == 2)
+    #expect(allHistory.count == 3)
+    #expect(allHistory.contains { $0.subject == "feature" })
     try await f.git(["merge", "--no-ff", "feature", "-m", "merge feature"])
     let treePath = f.url.appendingPathComponent("linked tree").path
     try await f.git(["worktree", "add", treePath, "feature"])

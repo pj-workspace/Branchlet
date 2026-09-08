@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             await store.start()
             if store.repositories.isEmpty || arguments.contains("--show-main") { WindowCoordinator.shared.showMain() }
-            if store.preferences.widgetVisible || arguments.contains("--show-widget") { WindowCoordinator.shared.showWidget() }
+            if store.preferences.widgetVisible || arguments.contains("--show-widget") { WindowCoordinator.shared.showWidget(activate: arguments.contains("--show-widget")) }
         }
     }
 

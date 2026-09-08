@@ -24,12 +24,7 @@ public struct GitService: Sendable {
         if status.isUnborn {
             commits = []
         } else {
-            // Start with HEAD's reachable graph. This keeps the selected worktree meaningful and stable.
-            let output = try await runner.run([
-                "log", "HEAD", "--topo-order", "-n", "160", "-z",
-                "--format=%H%x00%P%x00%an%x00%at%x00%s%x00%D",
-            ], at: path).checked()
-            commits = GitParser.commits(output.data)
+            commits = try await history(at: path)
         }
         let remotes = await withTaskGroup(of: (Int, RemoteComparison).self) { group in
             for (index, name) in names.enumerated() {
@@ -40,6 +35,14 @@ public struct GitService: Sendable {
             return values.sorted { $0.0 < $1.0 }.map(\.1)
         }
         return RepositorySnapshot(path: path, status: status, commits: commits, worktrees: trees, remotes: remotes)
+    }
+
+    public func history(at path: String, allBranches: Bool = false) async throws -> [Commit] {
+        let output = try await runner.run([
+            "log", allBranches ? "--all" : "HEAD", "--topo-order", "-n", "160", "-z",
+            "--format=%H%x00%P%x00%an%x00%at%x00%s%x00%D",
+        ], at: path).checked()
+        return GitParser.commits(output.data)
     }
 
     public func diff(at path: String, change: FileChange) async throws -> String {

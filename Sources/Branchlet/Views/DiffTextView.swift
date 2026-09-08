@@ -19,7 +19,7 @@ struct DiffTextView: NSViewRepresentable {
         view.textContainer?.widthTracksTextView = false
         view.textContainerInset = NSSize(width: 12, height: 12)
         view.backgroundColor = .textBackgroundColor
-        view.setAccessibilityLabel("Git 差异，只读文本")
+        view.setAccessibilityLabel(localized("Git 差异，只读文本"))
         scroll.documentView = view
         return scroll
     }

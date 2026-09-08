@@ -64,6 +64,9 @@ struct MenuBarView: View {
             .font(.system(size: 11)).foregroundStyle(.secondary).buttonStyle(.borderless).padding(.horizontal, 15).padding(.vertical, 10)
         }
         .frame(width: 460)
+        .onAppear {
+            DispatchQueue.main.async { NSApp.keyWindow?.makeFirstResponder(nil) }
+        }
         .alert("Branchlet", isPresented: Binding(get: { store.appError != nil }, set: { if !$0 { store.appError = nil } })) {
             Button("好") { store.appError = nil }
         } message: { Text(store.appError ?? "") }
